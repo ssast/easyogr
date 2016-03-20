@@ -13,9 +13,9 @@ except:
 from collections import OrderedDict
 from feature import Feature, format_geom, ogr_to_feature
 from core import (Query, add_attribute, create_layer, create_ogr_feature,
-                  export_sr, geom_types, import_sr, map_geom, open_ds,
-                  get_layer, spatial_queries, spatial_query, update_feature,
-                  update_attributes)
+                  export_sr, extent_to_polygon, geom_types, import_sr,
+                  map_geom, open_ds, get_layer, spatial_queries, spatial_query,
+                  update_feature, update_attributes)
 
 
 def format_layer(datasource, layer=None):
@@ -23,27 +23,27 @@ def format_layer(datasource, layer=None):
     Opens an OGR Layer from an input file path string, extracts an ogr_layer,
     or converts a OGR Geometry or Feature into an OGR Layer. Code is likely to
     change, but functionality and parameters should remain the same.
-    
+
     Parameters:
-    
+
         - datasource:
             The layer object or datasource path to process. Acceptable inputs
             are FeatureLayer, FeatureGenerator, Dataset, Feature, ogr.Layer,
             ogr.DataSource, ogr.Geometry and ogr.Feature (str/obj).
-            
+
         - layer (optional):
             Name or index of the layer to open. Only applicable if datasource
             is a Dataset, OGR DataSource, or a file path/database string (str).
-            
+
     Returns:
-    
+
         - ds:
             If opening a new layer, or creating a memory layer, provide the
             OGR DataSource used. Otherwise, return None (ogr.DataSource).
-            
+
         - layer:
             The OGR Layer derived from the input layer parameter (ogr.Layer).
-    
+
     """
 
     # Get OGR Layer, if present.
@@ -52,7 +52,7 @@ def format_layer(datasource, layer=None):
             if isinstance(datasource, FeatureLayer):
                 layer = datasource.ogr_layer
                 ds = None
-                
+
             # Get layer for Dataset or DataSource instances.
             elif isinstance(datasource, Dataset):
                 if layer is None:
@@ -64,7 +64,7 @@ def format_layer(datasource, layer=None):
                     layer = get_layer(datasource)
                 layer = datasource.GetLayerByName(layer)
                 ds = datasource
-            
+
             # If a string, open as a datasource, and get layer.
             elif type(datasource) == 'str':
                 _, datasource = open_ds(datasource)
@@ -103,16 +103,16 @@ def buffer(in_ds, buffer_dist, out_ds, fields='*', clause=None,
            spatial_ref=None, sr_format='osr'):
     """
     Perform an buffer operation between two layers.
-    
+
     Parameters:
-    
+
         - in_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the focal layer (str).
-        
+
         - buffer_dist:
             The buffer distance to apply to each Feature (float/int).
-                
+
         - out_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the output layer (str).
@@ -125,12 +125,12 @@ def buffer(in_ds, buffer_dist, out_ds, fields='*', clause=None,
         - clause (optional):
             Set a OGR-SQL clause to filter the layer features by field
             attributes. See http://www.gdal.org/ogr_sql.html (str).
-        
+
         - intersects (optional):
             Filter results by bounding box, from an OGR Geometry, easyOGR
             Feature, or a bounding box tuple in the format (minx, miny, maxx,
             maxy) (tuple).
-        
+
         - in_layer (optional):
             Name of the in_ds layer to open. Not required for single-layer data
             sources (e.g. Shapefile) (str).
@@ -143,16 +143,16 @@ def buffer(in_ds, buffer_dist, out_ds, fields='*', clause=None,
             Specify the OGR driver to use for the output, in OGR string format,
             or an OGR Driver instance. This is not necessarily required where
             out_ds has a standard file extension .e.g '.shp' (str/ogr.Driver).
-            
+
         - spatial_ref (optional):
             Spatial reference to use for projecting the Features. Input must be
             valid for sr_format. Default uses the reference of in_layer
             (str/obj).
-                
+
         - sr_format (optional):
             Format of spatial_ref. Valid formats are osr (default), wkt, proj4,
             url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-    
+
     """
 
     layer = FeatureLayer(in_ds, fields, clause, intersects, in_layer)
@@ -167,13 +167,13 @@ def copy_layer(in_ds, out_ds, fields='*', clause=None, intersects=None,
     """
     Copy a layer, optionally to another format, filtering features by spatial
     intersect or attributes, and transforming to another spatial reference.
-    
+
     Parameters:
-    
+
         - in_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the focal layer (str).
-                
+
         - out_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the output layer (str).
@@ -186,12 +186,12 @@ def copy_layer(in_ds, out_ds, fields='*', clause=None, intersects=None,
         - clause (optional):
             Set a OGR-SQL clause to filter the layer features by field
             attributes. See http://www.gdal.org/ogr_sql.html (str).
-        
+
         - intersects (optional):
             Filter results by bounding box, from an OGR Geometry, easyOGR
             Feature, or a bounding box tuple in the format (minx, miny, maxx,
             maxy) (tuple).
-        
+
         - in_layer (optional):
             Name of the in_ds layer to open. Not required for single-layer data
             sources (e.g. Shapefile) (str).
@@ -204,16 +204,16 @@ def copy_layer(in_ds, out_ds, fields='*', clause=None, intersects=None,
             Specify the OGR driver to use for the output, in OGR string format,
             or an OGR Driver instance. This is not necessarily required where
             out_ds has a standard file extension .e.g '.shp' (str/ogr.Driver).
-            
+
         - spatial_ref (optional):
             Spatial reference to use for projecting the Features. Input must be
             valid for sr_format. Default uses the reference of in_layer
             (str/obj).
-                
+
         - sr_format (optional):
             Format of spatial_ref. Valid formats are osr (default), wkt, proj4,
             url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-    
+
     """
 
     layer = FeatureLayer(in_ds, fields, clause, intersects, in_layer)
@@ -229,17 +229,17 @@ def difference(in_ds, op_ds, out_ds, fields='*', clause=None, intersects=None,
                spatial_ref=None, sr_format='osr'):
     """
     Perform a difference operation between two layers.
-    
+
     Parameters:
-    
+
         - in_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the focal layer (str).
-        
+
         - op_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the operation layer (str).
-                
+
         - out_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the output layer (str).
@@ -252,12 +252,12 @@ def difference(in_ds, op_ds, out_ds, fields='*', clause=None, intersects=None,
         - clause (optional):
             Set a OGR-SQL clause to filter the layer features by field
             attributes. See http://www.gdal.org/ogr_sql.html (str).
-        
+
         - intersects (optional):
             Filter results by bounding box, from an OGR Geometry, easyOGR
             Feature, or a bounding box tuple in the format (minx, miny, maxx,
             maxy) (tuple).
-        
+
         - in_layer (optional):
             Name of the in_ds layer to open. Not required for single-layer data
             sources (e.g. Shapefile) (str).
@@ -274,16 +274,16 @@ def difference(in_ds, op_ds, out_ds, fields='*', clause=None, intersects=None,
             Specify the OGR driver to use for the output, in OGR string format.
             or an OGR Driver instance. This is not necessarily required where
             out_ds has a standard file extension .e.g '.shp' (str/ogr.Driver).
-            
+
         - spatial_ref (optional):
             Spatial reference to use for projecting the Features. Input must be
             valid for sr_format. Default uses the reference of in_layer
             (str/obj).
-                
+
         - sr_format (optional):
             Format of spatial_ref. Valid formats are osr (default), wkt, proj4,
             url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-    
+
     """
 
     layer = FeatureLayer(in_ds, fields, clause, intersects, in_layer)
@@ -297,17 +297,17 @@ def erase(in_ds, op_ds, out_ds, fields='*', clause=None, intersects=None,
           spatial_ref=None, sr_format='osr'):
     """
     Perform an erase operation between two layers.
-    
+
     Parameters:
-    
+
         - in_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the focal layer (str).
-        
+
         - op_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the operation layer (str).
-                
+
         - out_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the output layer (str).
@@ -320,12 +320,12 @@ def erase(in_ds, op_ds, out_ds, fields='*', clause=None, intersects=None,
         - clause (optional):
             Set a OGR-SQL clause to filter the layer features by field
             attributes. See http://www.gdal.org/ogr_sql.html (str).
-        
+
         - intersects (optional):
             Filter results by bounding box, from an OGR Geometry, easyOGR
             Feature, or a bounding box tuple in the format (minx, miny, maxx,
             maxy) (tuple).
-        
+
         - in_layer (optional):
             Name of the in_ds layer to open. Not required for single-layer data
             sources (e.g. Shapefile) (str).
@@ -342,16 +342,16 @@ def erase(in_ds, op_ds, out_ds, fields='*', clause=None, intersects=None,
             Specify the OGR driver to use for the output, in OGR string format.
             or an OGR Driver instance. This is not necessarily required where
             out_ds has a standard file extension .e.g '.shp' (str/ogr.Driver).
-            
+
         - spatial_ref (optional):
             Spatial reference to use for projecting the Features. Input must be
             valid for sr_format. Default uses the reference of in_layer
             (str/obj).
-                
+
         - sr_format (optional):
             Format of spatial_ref. Valid formats are osr (default), wkt, proj4,
             url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-    
+
     """
 
     layer = FeatureLayer(in_ds, fields, clause, intersects, in_layer)
@@ -365,17 +365,17 @@ def identity(in_ds, op_ds, out_ds, fields='*', clause=None, intersects=None,
              spatial_ref=None, sr_format='osr'):
     """
     Perform an identity operation between two layers.
-    
+
     Parameters:
-    
+
         - in_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the focal layer (str).
-        
+
         - op_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the operation layer (str).
-                
+
         - out_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the output layer (str).
@@ -388,12 +388,12 @@ def identity(in_ds, op_ds, out_ds, fields='*', clause=None, intersects=None,
         - clause (optional):
             Set a OGR-SQL clause to filter the layer features by field
             attributes. See http://www.gdal.org/ogr_sql.html (str).
-        
+
         - intersects (optional):
             Filter results by bounding box, from an OGR Geometry, easyOGR
             Feature, or a bounding box tuple in the format (minx, miny, maxx,
             maxy) (tuple).
-        
+
         - in_layer (optional):
             Name of the in_ds layer to open. Not required for single-layer data
             sources (e.g. Shapefile) (str).
@@ -410,16 +410,16 @@ def identity(in_ds, op_ds, out_ds, fields='*', clause=None, intersects=None,
             Specify the OGR driver to use for the output, in OGR string format,
             or an OGR Driver instance. This is not necessarily required where
             out_ds has a standard file extension .e.g '.shp' (str/ogr.Driver).
-            
+
         - spatial_ref (optional):
             Spatial reference to use for projecting the Features. Input must be
             valid for sr_format. Default uses the reference of in_layer
             (str/obj).
-                
+
         - sr_format (optional):
             Format of spatial_ref. Valid formats are osr (default), wkt, proj4,
             url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-    
+
     """
 
     layer = FeatureLayer(in_ds, fields, clause, intersects, in_layer)
@@ -433,17 +433,17 @@ def intersection(in_ds, op_ds, out_ds, fields='*', clause=None,
                  out_driver=None, spatial_ref=None, sr_format='osr'):
     """
     Perform an intersection between two layers.
-    
+
     Parameters:
-    
+
         - in_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the focal layer (str).
-        
+
         - op_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the operation layer (str).
-                
+
         - out_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the output layer (str).
@@ -456,12 +456,12 @@ def intersection(in_ds, op_ds, out_ds, fields='*', clause=None,
         - clause (optional):
             Set a OGR-SQL clause to filter the layer features by field
             attributes. See http://www.gdal.org/ogr_sql.html (str).
-        
+
         - intersects (optional):
             Filter results by bounding box, from an OGR Geometry, easyOGR
             Feature, or a bounding box tuple in the format (minx, miny, maxx,
             maxy) (tuple).
-        
+
         - in_layer (optional):
             Name of the in_ds layer to open. Not required for single-layer data
             sources (e.g. Shapefile) (str).
@@ -478,16 +478,16 @@ def intersection(in_ds, op_ds, out_ds, fields='*', clause=None,
             Specify the OGR driver to use for the output, in OGR string format.
             or an OGR Driver instance. This is not necessarily required where
             out_ds has a standard file extension .e.g '.shp' (str/ogr.Driver).
-            
+
         - spatial_ref (optional):
             Spatial reference to use for projecting the Features. Input must be
             valid for sr_format. Default uses the reference of in_layer
             (str/obj).
-                
+
         - sr_format (optional):
             Format of spatial_ref. Valid formats are osr (default), wkt, proj4,
             url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-    
+
     """
 
     layer = FeatureLayer(in_ds, fields, clause, intersects, in_layer)
@@ -501,17 +501,17 @@ def union(in_ds, op_ds, out_ds, fields='*', clause=None, intersects=None,
           spatial_ref=None, sr_format='osr'):
     """
     Perform a union operation between two layers.
-    
+
     Parameters:
-    
+
         - in_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the focal layer (str).
-        
+
         - op_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the operation layer (str).
-                
+
         - out_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the output layer (str).
@@ -524,12 +524,12 @@ def union(in_ds, op_ds, out_ds, fields='*', clause=None, intersects=None,
         - clause (optional):
             Set a OGR-SQL clause to filter the layer features by field
             attributes. See http://www.gdal.org/ogr_sql.html (str).
-        
+
         - intersects (optional):
             Filter results by bounding box, from an OGR Geometry, easyOGR
             Feature, or a bounding box tuple in the format (minx, miny, maxx,
             maxy) (tuple).
-        
+
         - in_layer (optional):
             Name of the in_ds layer to open. Not required for single-layer data
             sources (e.g. Shapefile) (str).
@@ -546,21 +546,21 @@ def union(in_ds, op_ds, out_ds, fields='*', clause=None, intersects=None,
             Specify the OGR driver to use for the output, in OGR string format.
             or an OGR Driver instance. This is not necessarily required where
             out_ds has a standard file extension .e.g '.shp' (str/ogr.Driver).
-            
+
         - spatial_ref (optional):
             Spatial reference to use for projecting the Features. Input must be
             valid for sr_format. Default uses the reference of in_layer
             (str/obj).
-                
+
         - sr_format (optional):
             Format of spatial_ref. Valid formats are osr (default), wkt, proj4,
             url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-    
+
     """
 
     layer = FeatureLayer(in_ds, fields, clause, intersects, in_layer)
     layer.union(op_ds, out_ds, op_layer, out_layer, out_driver,
-                       spatial_ref, sr_format)
+                spatial_ref, sr_format)
     layer.close()
 
 
@@ -569,17 +569,17 @@ def update(in_ds, op_ds, out_ds, fields='*', clause=None, intersects=None,
            spatial_ref=None, sr_format='osr'):
     """
     Perform an update operation between two layers.
-    
+
     Parameters:
-    
+
         - in_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the focal layer (str).
-        
+
         - op_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the operation layer (str).
-                
+
         - out_ds:
             File system path to an OGR-readable data source, or a database
             connection string, for the output layer (str).
@@ -592,12 +592,12 @@ def update(in_ds, op_ds, out_ds, fields='*', clause=None, intersects=None,
         - clause (optional):
             Set a OGR-SQL clause to filter the layer features by field
             attributes. See http://www.gdal.org/ogr_sql.html (str).
-        
+
         - intersects (optional):
             Filter results by bounding box, from an OGR Geometry, easyOGR
             Feature, or a bounding box tuple in the format (minx, miny, maxx,
             maxy) (tuple).
-        
+
         - in_layer (optional):
             Name of the in_ds layer to open. Not required for single-layer data
             sources (e.g. Shapefile) (str).
@@ -614,16 +614,16 @@ def update(in_ds, op_ds, out_ds, fields='*', clause=None, intersects=None,
             Specify the OGR driver to use for the output, in OGR string format.
             or an OGR Driver instance. This is not necessarily required where
             out_ds has a standard file extension .e.g '.shp' (str/ogr.Driver).
-            
+
         - spatial_ref (optional):
             Spatial reference to use for projecting the Features. Input must be
             valid for sr_format. Default uses the reference of in_layer
             (str/obj).
-                
+
         - sr_format (optional):
             Format of spatial_ref. Valid formats are osr (default), wkt, proj4,
             url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-    
+
     """
 
     layer = FeatureLayer(in_ds, fields, clause, intersects, in_layer)
@@ -638,14 +638,14 @@ class Dataset(object):
     Inherited by the FeatureGenerator and FeatureLayer classes, and used for
     various functons to manipulate and access layers. Opening a layer will set
     it as the active layer, making it available for geoprocessing.
-    
+
     Methods:
-    
+
         - close:
             Closes both the active layer, and the OGR DataSource. Once called,
             the instance or any OGR objects belonging to it can no longer be
             used.
-        
+
         - spatial_ref:
             Converts the active Layer spatial reference to another format.
 
@@ -657,19 +657,19 @@ class Dataset(object):
 
         - driver:
             Name of the driver used to open the datasource (str).
-            
+
         - features:
             The number of available features in the active layer (int).
-        
+
         - fids:
             Flag for if the active layer has an FID column (bool).
-        
+
         - field_definitions:
             OrderedDict containing field attributes for the active layer (obj).
 
         - fields:
             Names of the fields present in the active layer (tuple).
-        
+
         - geometry_type:
             OGR name for the active layer geometry type (str).
 
@@ -679,7 +679,7 @@ class Dataset(object):
 
         - name:
             The name of the active layer (str).
-            
+
         - ogr_ds:
             The OGR DataSource object used for the Dataset. Available for
             convenience and compatibility with OGR, but may break the Dataset
@@ -688,7 +688,7 @@ class Dataset(object):
         - osr_sr:
             The OSR SpatialReference object for the active layer. Set to None
             if no valid spatial reference is present (obj).
-            
+
         - proj4:
             Proj4 representation of the spatial reference for the active layer.
             Set to None if no valid spatial reference is present (str).
@@ -724,12 +724,12 @@ class Dataset(object):
             - datasource:
                 File system path to an OGR-readable data source, or a database
                 connection string (str).
-       
+
             - driver (optional):
                 Name of the driver to use, in OGR format (str). If not
                 supplied, this will be determined from the file extension, or
                 by attempting all drivers (str).
-       
+
             - mode (optional):
                 Set "r" for read only, or "rw" for read/write. OGR 0/1 is also
                 accepted. Read only is default (int/str).
@@ -768,9 +768,9 @@ class Dataset(object):
         Closes the current active layer. Should not be called directly, used by
         class methods to control layer io. Once called, another layer can be
         set as the active layer with _open_layer.
-        
+
         """
-        
+
         if self.status == "Open":
             self.ogr_ds.ReleaseResultSet(self.ogr_layer)
             self.ogr_layer = None
@@ -799,9 +799,9 @@ class Dataset(object):
         methods to control layer io. The Arguments filter the resulting layer
         records, which cannot then be changed without closing the layer and
         opening a new instance.
-        
+
         Parameters:
-        
+
             - layer (optional):
                 Name or index of the layer to open. Not required for single
                 layer datasources e.g. Shapefile (int/str).
@@ -862,7 +862,7 @@ class Dataset(object):
         try:
             self.ogr_layer = self.ogr_ds.ExecuteSQL(sql, intersects)
         except:
-            print ("\nLayer SQL failed, check fields, clause, and " + 
+            print ("\nLayer SQL failed, check fields, clause, and " +
                    "intersects arguments.")
             raise Exception()
         self.status = "Open"
@@ -873,7 +873,7 @@ class Dataset(object):
         Sets the object attributes from the active layer, if there is one.
 
         """
-        
+
         if self.ogr_layer is None:
 
             # Set null layer attributes.
@@ -884,7 +884,7 @@ class Dataset(object):
             self.bbox = None
             self.fids = False
             self.name = None
-            
+
         else:
 
             # Get attributes of layer fields.
@@ -905,19 +905,19 @@ class Dataset(object):
             # Get input layer bounding box.
             minx, maxx, miny, maxy = self.ogr_layer.GetExtent()
             self.bbox = (minx, miny, maxx, maxy)
-            
+
             # Set FIDs flag.
             if self.ogr_layer.GetFIDColumn():
                 self.fids = True
             else:
                 self.fids = False
-                
+
             # Set name.
             self.name = self.ogr_layer.GetName()
 
         # Set spatial reference.
         self._set_sr()
-        
+
         # FID selection for layer (used for FeatureLayer).
         self._selection = None
 
@@ -926,7 +926,7 @@ class Dataset(object):
         Sets the spatial reference attributes of the layer.
 
         Parameters:
-            
+
             - spatial_ref (optional):
                 The OSR spatial reference object to apply. If set to None, this
                 is set from the active layer, should there be one. If no valid
@@ -938,7 +938,7 @@ class Dataset(object):
         # If not specified, extract spatial reference from active layer.
         if spatial_ref is None and self.status == "Open":
             spatial_ref = self.ogr_layer.GetSpatialRef()
-        
+
         # If still None, set all spatial reference attributes to None.
         if spatial_ref is None:
             self.units = None
@@ -960,7 +960,7 @@ class Dataset(object):
         """
         Closes both the active layer, and the OGR DataSource. Once called, the
         instance or any OGR objects belonging to it can no longer be used.
-        
+
         """
 
         self._close_layer()
@@ -977,21 +977,21 @@ class FeatureGenerator(Dataset):
     applying geoprocessing operations.
 
     Methods:
-    
+
         - add_field:
             Add a new field to the yielded Features. This does not affect the
             source layer.
-        
+
         - attribute_filter:
             Filter the Features by field attributes.
-            
+
         - buffer:
             Apply a geometric buffer to each Feature.
-        
+
         - calculate_field:
             Set a value for a given field. Currently limited to a single value
             for all selected features.
-    
+
         - close:
             Closes both the active layer, and the OGR DataSource. Once called,
             the instance or any OGR objects belonging to it can no longer be
@@ -999,53 +999,53 @@ class FeatureGenerator(Dataset):
 
         - contains:
             Filter the Features by contains spatial query.
-        
+
         - crosses:
             Filter the Features by crosses spatial query.
-        
+
         - difference:
             Filter the Features by difference spatial query.
-        
+
         - disjoint:
             Filter the Features by disjoint spatial query.
-        
+
         - drop_fields:
             Remove fields from the yielded Features. This does not affect the
             source layer.
-        
+
         - equals:
             Filter the Features by equals spatial query.
-        
+
         - export:
             Export the current cursor to file, emptying and closing the object.
-        
+
         - intersection:
             Apply an intersection between the Features with another geometry.
-        
+
         - intersects:
             Filter the Features by intersects spatial query.
 
         - next:
             Get next Feature.
-        
+
         - overlaps:
             Filter the Features by overlaps spatial query.
-        
+
         - project:
             Project the Features to a new coordinate system.
-        
+
         - spatial_reference:
             Converts the active Layer spatial reference to another format.
-        
+
         - touches:
             Filter the Features by touches spatial query.
-        
+
         - transform:
             Transform the Features to another coordinate system.
-        
+
         - union:
             Apply a geometric union of the Features with another geometry.
-        
+
         - within:
             Filter the Features by within spatial query.
 
@@ -1057,29 +1057,29 @@ class FeatureGenerator(Dataset):
 
         - driver:
             Name of the driver used to open the datasource (str).
-            
+
         - features:
             The number of available features in the active layer.  (int).
-        
+
         - fids:
             Flag for if the active layer has an FID column (bool).
-            
+
         - field_definitions:
             OrderedDict containing field attributes for the active layer (obj).
 
         - fields:
             Names of the fields present in the active layer (tuple).
-        
+
         - geometry_type:
             OGR name for the active layer geometry type (str).
 
         - layers:
             Names of all layers present in the current Dataset, ordered by
             index (tuple).
-        
+
         - name:
             The name of the active layer (str).
-        
+
         - ogr_ds:
             The OGR DataSource object used for the Dataset. Available for
             convenience and compatibility with OGR, but may break the Dataset
@@ -1088,7 +1088,7 @@ class FeatureGenerator(Dataset):
         - osr_sr:
             The OSR SpatialReference object for the active layer. Set to None
             if no valid spatial reference is present (obj).
-            
+
         - proj4:
             Proj4 representation of the spatial reference for the active layer.
             Set to None if no valid spatial reference is present (str).
@@ -1134,7 +1134,7 @@ class FeatureGenerator(Dataset):
             - clause (optional):
                 Set a OGR-SQL clause to filter the layer features by field
                 attributes. See http://www.gdal.org/ogr_sql.html (str).
-                
+
             - intersects (optional):
                 Filter results by bounding box, from an OGR Geometry, easyOGR
                 Feature, or a bounding box tuple in the format (minx, miny,
@@ -1165,45 +1165,45 @@ class FeatureGenerator(Dataset):
     def __iter__(self):
         return self
 
-    def add_field(field_name, field_type, precision=None, width=None,
+    def add_field(self, field_name, field_type, precision=None, width=None,
                   value=None):
         """
         Add a new field to the yielded Features. This does not affect the
         source layer.
-        
+
         Parameters:
-        
+
             - field_name:
                 Name for the field to add (str).
-                
+
             - field_type:
                 OGR-type for field. Options are: Integer, IntegerList, Real,
                 RealList, String, StringList, WideString, WideStringList,
                 Binary, Date, Time, DateTime (str).
-                
+
             - precision (optional):
                 Precision value for field (int).
-        
+
             - width (optional):
                 Width value for field (int).
-                
+
             - value (optional):
                 Default value to set for field.
-        
+
         """
-        
+
         fields = list(self.fields)
-        fields.append(field)
+        fields.append(field_name)
         self.fields = tuple(fields)
-        self.field_definitions[field] = [field_type, precision, width]
+        self.field_definitions[field_name] = [field_type, precision, width]
         self.__cursor = add_attribute(self.__cursor, value)
 
     def attribute_filter(self, clause):
         """
         Filter the Features by field attributes.
-        
+
         Parameters:
-        
+
             - clause:
                 Query string to apply to the Features. Input must be valid
                 Python, using unquoted field names and field values as they
@@ -1220,34 +1220,34 @@ class FeatureGenerator(Dataset):
         Apply a geometric buffer to each Feature.
 
         Parameters:
-        
+
             - distance:
                 Buffer distance to apply, measured in the units of the spatial
                 reference (int/float).
 
         """
-        
+
         self.__cursor = map_geom(Feature.buffer, self.__cursor, distance)
 
     def calculate_field(self, field, value=None, clause=None):
         """
         Set a value for a given field. Currently limited to a single value for
         all selected features.
-        
+
         Parameters:
-        
+
             - field:
                 Field name to edit (str).
-                
+
             - value (optional):
                 Value to set for the field.
-                
+
             - clause (optional):
                 Query string to apply to the Features. Input must be valid
                 Python, using unquoted field names and field values as they
                 would be defined in Python, e.g. field_1 >= 1 or field_2 == "A"
                 (str).
-        
+
         """
 
         self.__cursor = update_attributes(self.__cursor, field, value,
@@ -1256,14 +1256,14 @@ class FeatureGenerator(Dataset):
     def contains(self, feature):
         """
         Filter the Features by contains spatial query.
-        
+
         Parameters:
-        
+
             - feature:
                 Geometry to query. Valid inputs are Feature, FeatureLayer,
                 FeatureGenerator, ogr.Feature, ogr.Geometry, or a list of
                 Features (obj).
-                
+
         """
 
         clause = Feature.contains
@@ -1272,14 +1272,14 @@ class FeatureGenerator(Dataset):
     def crosses(self, feature):
         """
         Filter the Features by crosses spatial query.
-        
+
         Parameters:
-        
+
             - feature:
                 Geometry to query. Valid inputs are Feature, FeatureLayer,
                 FeatureGenerator, ogr.Feature, ogr.Geometry, or a list of
                 Features (obj).
-                
+
         """
 
         clause = Feature.crosses
@@ -1288,29 +1288,29 @@ class FeatureGenerator(Dataset):
     def difference(self, feature):
         """
         Calculate the difference between the Features and another geometry.
-        
+
         Parameters:
-        
+
             - feature:
                 Geometry to apply. Valid inputs are Feature, FeatureLayer,
                 FeatureGenerator, ogr.Feature, ogr.Geometry, or a list of
                 Features (obj).
 
         """
-                
+
         self.__cursor = map_geom(Feature.difference, self.__cursor, feature)
 
     def disjoint(self, feature):
         """
         Filter the Features by disjoint spatial query.
-        
+
         Parameters:
-        
+
             - feature:
                 Geometry to query. Valid inputs are Feature, FeatureLayer,
                 FeatureGenerator, ogr.Feature, ogr.Geometry, or a list of
                 Features (obj).
-                
+
         """
 
         clause = Feature.disjoint
@@ -1320,14 +1320,14 @@ class FeatureGenerator(Dataset):
         """
         Remove fields from the yielded Features. This does not affect the
         source layer.
-        
+
         Parameters:
-            
+
             - drop_fields:
                 The field names to remove (str).
-            
+
         """
-        
+
         filters = [f.lower() for f in self.fields]
         fields = list(self.fields)
         indicies = []
@@ -1342,14 +1342,14 @@ class FeatureGenerator(Dataset):
     def equals(self, feature):
         """
         Filter the Features by equals spatial query.
-        
+
         Parameters:
-        
+
             - feature:
                 Geometry to query. Valid inputs are Feature, FeatureLayer,
                 FeatureGenerator, ogr.Feature, ogr.Geometry, or a list of
                 Features (obj).
-                
+
         """
 
         clause = Feature.equals
@@ -1358,21 +1358,21 @@ class FeatureGenerator(Dataset):
     def export(self, out_file, out_layer=None, driver=None):
         """
         Export the current cursor to file, emptying and closing the object.
-        
+
         Parameters:
-        
+
             - out_file:
                 File path for the output layer (str).
-                
+
             - out_layer (optional):
                 Name to give the layer, if not already included in out_file.
                 Not required for single-layer data sources (str).
-              
+
             - driver (optional):
                 Name of the driver to use for writing the file (str).
-        
+
         """
-        
+
         out_ds, out_layer = create_layer(out_file, self.field_definitions,
                                          self.ogr_layer.GetGeomType(),
                                          self.fields, self, self.osr_sr,
@@ -1383,14 +1383,14 @@ class FeatureGenerator(Dataset):
     def intersects(self, feature):
         """
         Filter the Features by intersects spatial query.
-        
+
         Parameters:
-        
+
             - feature:
                 Geometry to query. Valid inputs are Feature, FeatureLayer,
                 FeatureGenerator, ogr.Feature, ogr.Geometry, or a list of
                 Features (obj).
-                
+
         """
 
         clause = Feature.intersects
@@ -1399,24 +1399,24 @@ class FeatureGenerator(Dataset):
     def intersection(self, feature):
         """
         Apply an intersection between the Features with another geometry.
-        
+
         Parameters:
-        
+
             - feature:
                 Geometry to apply. Valid inputs are Feature, FeatureLayer,
                 FeatureGenerator, ogr.Feature, ogr.Geometry, or a list of
                 Features (obj).
-                
+
         """
-        
+
         self.__cursor = map_geom(Feature.intersection, self.__cursor, feature)
 
     def next(self):
         """
         Get next Feature.
-        
+
         """
-        
+
         try:
             return self.__cursor.next()
         except StopIteration:
@@ -1426,14 +1426,14 @@ class FeatureGenerator(Dataset):
     def overlaps(self, feature):
         """
         Filter the Features by overlaps spatial query.
-        
+
         Parameters:
-        
+
             - feature:
                 Geometry to query. Valid inputs are Feature, FeatureLayer,
                 FeatureGenerator, ogr.Feature, ogr.Geometry, or a list of
                 Features (obj).
-                
+
         """
 
         clause = Feature.overlaps
@@ -1442,23 +1442,23 @@ class FeatureGenerator(Dataset):
     def project(self, spatial_ref, sr_format='osr'):
         """
         Project the Features to a new coordinate system.
-        
+
         Parameters:
-            
+
             - spatial_ref:
                 Spatial reference to use for projecting the Features. Input
                 must be valid for sr_format.
-                
+
             - sr_format (optional):
                 Format of spatial_ref. Valid formats are osr (default),
                 wkt, proj4, url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-        
+
         """
-    
+
         if not isinstance(spatial_ref, osr.SpatialReference):
             new_sr = osr.SpatialReference()
             import_sr[sr_format](new_sr, spatial_ref)
-            spatial_ref = new_sr            
+            spatial_ref = new_sr
         self._set_sr(spatial_ref)
         self.__cursor = update_feature(Feature.project, self.__cursor,
                                        spatial_ref)
@@ -1466,18 +1466,18 @@ class FeatureGenerator(Dataset):
     def spatial_reference(self, sr_format='osr'):
         """
         Converts the active Layer spatial reference to another format.
-        
+
         Parameters:
-                
+
             - sr_format (optional):
                 Format of spatial_reference. Valid formats are osr (default),
                 wkt, proj4, url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-        
+
         Returns:
-        
+
             - sr:
                 Converted spatial reference, or None if not present (obj).
-        
+
         """
 
         sr = self.osr_sr
@@ -1491,19 +1491,19 @@ class FeatureGenerator(Dataset):
     def transform(self, spatial_ref, sr_format='osr'):
         """
         Transform the Features to another coordinate system.
-        
+
         Parameters:
-            
+
             - spatial_ref:
                 Spatial reference to use for projecting the Features. Input
                 must be valid for sr_format.
-                
+
             - sr_format (optional):
                 Format of spatial_ref. Valid formats are osr (default),
                 wkt, proj4, url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-        
+
         """
-    
+
         if not isinstance(spatial_ref, osr.SpatialReference):
             new_sr = osr.SpatialReference()
             import_sr[sr_format](new_sr, spatial_ref)
@@ -1520,14 +1520,14 @@ class FeatureGenerator(Dataset):
     def touches(self, feature):
         """
         Filter the Features by touches spatial query.
-        
+
         Parameters:
-        
+
             - feature:
                 Geometry to query. Valid inputs are Feature, FeatureLayer,
                 FeatureGenerator, ogr.Feature, ogr.Geometry, or a list of
                 Features (obj).
-                
+
         """
 
         clause = Feature.touches
@@ -1536,14 +1536,14 @@ class FeatureGenerator(Dataset):
     def within(self, feature):
         """
         Filter the Features by within spatial query.
-        
+
         Parameters:
-        
+
             - feature:
                 Geometry to query. Valid inputs are Feature, FeatureLayer,
                 FeatureGenerator, ogr.Feature, ogr.Geometry, or a list of
                 Features (obj).
-                
+
         """
 
         clause = Feature.within
@@ -1552,16 +1552,16 @@ class FeatureGenerator(Dataset):
     def union(self, feature):
         """
         Apply a geometric union of the Features with another geometry.
-        
+
         Parameters:
-        
+
             - feature:
                 Geometry to apply. Valid inputs are Feature, FeatureLayer,
                 FeatureGenerator, ogr.Feature, ogr.Geometry, or a list of
                 Features (obj).
-                
+
         """
-    
+
         self.__cursor = map_geom(Feature.union, self.__cursor, feature)
 
 
@@ -1572,47 +1572,47 @@ class FeatureLayer(Dataset):
     Methods apply selections to the layer, and run geoprocessing operations.
     fields, clause and intertsects filters set on init cannot be cleared once
     set, but feature selections can.
-    
+
     Methods:
-        
+
         - attribute_filter:
             Select Layer features by attribute.
-       
+
         - buffer:
             Apply a geometric buffer to the Layer.
-        
+
         - clear_selection:
             Clear any active selection.
-    
+
         - close:
             Closes both the active layer, and the OGR DataSource. Once called,
             the instance or any OGR objects belonging to it can no longer be
             used.
-        
+
         - difference:
             Calculate the difference between the Layer and another.
-        
+
         - erase:
             Execute an erase operation between the Layer and another.
-        
+
         - export:
             Export the layer to an output file.
-        
+
         - identity:
             Execute an identity operation between the Layer and another.
-        
+
         - intersection:
             Execute an intersection operation between the Layer and another.
-        
+
         - project:
             Projects the Layer to another spatial reference.
-        
+
         - spatial_reference:
             Converts the active Layer spatial reference to another format.
-        
+
         - transform:
             Transform the Layer to another spatial reference.
-        
+
         - union:
             Execute a union operation between the Layer and another.
 
@@ -1627,29 +1627,29 @@ class FeatureLayer(Dataset):
 
         - driver:
             Name of the driver used to open the datasource (str).
-            
+
         - features:
             The number of available features in the active layer.  (int).
-            
+
         - field_definitions:
             OrderedDict containing field attributes for the active layer (obj).
 
         - fields:
             Names of the fields present in the active layer (tuple).
-        
+
         - fids:
             Flag for if the active layer has an FID column (bool).
-            
+
         - geometry_type:
             OGR name for the active layer geometry type (str).
 
         - layers:
             Names of all layers present in the current Dataset, ordered by
             index (tuple).
-            
+
         - name:
             The name of the active layer (str).
-            
+
         - ogr_ds:
             The OGR DataSource object used for the Dataset. Available for
             convenience and compatibility with OGR, but may break the Dataset
@@ -1658,7 +1658,7 @@ class FeatureLayer(Dataset):
         - osr_sr:
             The OSR SpatialReference object for the active layer. Set to None
             if no valid spatial reference is present (obj).
-            
+
         - proj4:
             Proj4 representation of the spatial reference for the active layer.
             Set to None if no valid spatial reference is present (str).
@@ -1703,7 +1703,7 @@ class FeatureLayer(Dataset):
             - clause (optional):
                 Set a OGR-SQL clause to filter the layer features by field
                 attributes. See http://www.gdal.org/ogr_sql.html (str).
-                
+
             - intersects (optional):
                 Filter results by bounding box, from an OGR Geometry, easyOGR
                 Feature, or a bounding box tuple in the format (minx, miny,
@@ -1740,15 +1740,15 @@ class FeatureLayer(Dataset):
 
             - operation:
                 The ogr.Layer or Feature method to execute (func).
-                
+
             - out_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the output layer (str).
-                
+
             - op_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the operation layer (str).
-                
+
             - op_layer (optional):
                 Name of the in_ds layer to open. Not required for single-layer
                 data sources (e.g. Shapefile) (str).
@@ -1756,31 +1756,31 @@ class FeatureLayer(Dataset):
             - out_layer (optional):
                 Name of the in_ds layer to create. Not required for
                 single-layer data sources (e.g. Shapefile) (str).
-                
+
             - out_driver (optional):
                 Specify the OGR driver to use for the output, in OGR string
                 format, or an OGR Driver instance. This is not necessarily
                 required where out_ds has a standard file extension .e.g '.shp'
                 (str/ogr.Driver).
-                
+
             - spatial_ref (optional):
                 Spatial reference to use for projecting the Features. Input
                 must be valid for sr_format. Default uses the reference of
                 ogr_layer (str/obj).
-                    
+
             - sr_format (optional):
                 Format of spatial_ref. Valid formats are osr (default), wkt,
                 proj4, url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-            
+
             - arguments (optional):
                 Further arguments to pass to the spatial operation (list).
-            
+
             - cursor (optional):
                 If a Feature level operation is to be applied, open a cursor to
                 generate Features (bool).
-            
+
         """
-        
+
         # Apply fid selection.
         if self._selection:
             self.ogr_layer.SetAttributeFilter("FID IN {0}".format(
@@ -1803,7 +1803,7 @@ class FeatureLayer(Dataset):
         # Generate Features.
         if cursor:
             features = self._cursor()
-            
+
             # Execute operation on Features.
             if op_layer is None:
                 features = (operation(feature, *arguments) for
@@ -1816,7 +1816,8 @@ class FeatureLayer(Dataset):
             if isinstance(out_layer, ogr.Layer):
                 for feature in features:
                     feature = create_ogr_feature(defn, feature.ogr_geom,
-                                              feature.attributes, fields)
+                                                 feature.attributes,
+                                                 self.fields)
                     out_layer.CreateFeature(feature)
             else:
                 out_ds, out_layer = create_layer(out_ds, defn, geom,
@@ -1824,11 +1825,11 @@ class FeatureLayer(Dataset):
                                                  spatial_ref=spatial_ref,
                                                  layer=out_layer,
                                                  driver=out_driver)
-        
+
         # Use instance layer.
         else:
             in_layer = self.ogr_layer
-            
+
             # Create a new empty layer.
             if not isinstance(out_layer, ogr.Layer):
                 out_ds, out_layer = create_layer(out_ds, defn, geom,
@@ -1836,13 +1837,13 @@ class FeatureLayer(Dataset):
                                                  spatial_ref=spatial_ref,
                                                  layer=out_layer,
                                                  driver=out_driver)
-            
+
             # Execute operation on layer.
             if op_layer is None:
                 operation(in_layer, out_layer, *arguments)
             else:
                 operation(in_layer, op_layer, out_layer, *arguments)
-                
+
         # Close layers.
         out_layer = None
         op_layer = None
@@ -1853,25 +1854,25 @@ class FeatureLayer(Dataset):
     def attribute_filter(self, clause, selection="NEW"):
         """
         Select Layer features by attribute.
-        
+
         Parameters:
-                
+
             - clause:
                 Query string to apply to the Features. Input must be valid
                 Python, using unquoted field names and field values as they
                 would be defined in Python, e.g. field_1 >= 1 or field_2 == "A"
                 (str).
-                
+
             - selection (optional):
                 The selection method to apply. Options are "NEW" (default),
                 "INTERSECTION", "UNION", "DIFFERENCE" (str).
-                
+
         """
-    
+
         # Initiate Query instance.
         query = Query(self.fields, clause)
         selection = selection.upper()
-        
+
         # If using a new selection, clear and add all fids passing the test.
         if self._selection is None or selection == "NEW":
             self._selection = set()
@@ -1894,7 +1895,7 @@ class FeatureLayer(Dataset):
                     attributes.append(feature.GetField(field))
                 if not query.test(attributes):
                     self._selection.remove(fid)
-                    
+
         # Append fids passing the test to the selection.
         elif selection == "UNION":
             for fid in xrange(self.features):
@@ -1917,7 +1918,7 @@ class FeatureLayer(Dataset):
                     attributes.append(feature.GetField(field))
                 if query.test(attributes):
                     self._selection.remove(fid)
-                    
+
         # Recalculate feature count.
         self.features = len(self._selection)
 
@@ -1925,12 +1926,12 @@ class FeatureLayer(Dataset):
                spatial_ref=None, sr_format='osr'):
         """
         Apply a geometric buffer to the Layer.
-        
+
         Parameters:
-        
+
             - buffer_dist:
                 The buffer distance to apply to each Feature (float/int).
-                
+
             - out_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the output layer (str).
@@ -1938,24 +1939,24 @@ class FeatureLayer(Dataset):
             - out_layer (optional):
                 Name of the in_ds layer to create. Not required for
                 single-layer data sources (e.g. Shapefile) (str).
-                
+
             - out_driver (optional):
                 Specify the OGR driver to use for the output, in OGR string
                 format, or an OGR Driver instance. This is not necessarily
                 required where out_ds has a standard file extension .e.g '.shp'
                 (str/ogr.Driver).
-                
+
             - spatial_ref (optional):
                 Spatial reference to use for projecting the Features. Input
                 must be valid for sr_format. Default uses the reference of
                 ogr_layer (str/obj).
-                    
+
             - sr_format (optional):
                 Format of spatial_ref. Valid formats are osr (default), wkt,
                 proj4, url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-        
+
         """
-        
+
         operation = Feature.buffer
         self._spatial_op(operation, out_ds, out_layer=out_layer,
                          spatial_ref=spatial_ref, sr_format=sr_format,
@@ -1964,9 +1965,9 @@ class FeatureLayer(Dataset):
     def clear_selection(self):
         """
         Clear selected features.
-        
+
         """
-        
+
         self._selection = set()
         self.features = self.ogr_layer.GetFeatureCount()
 
@@ -1974,17 +1975,17 @@ class FeatureLayer(Dataset):
                    out_driver=None, spatial_ref=None, sr_format='osr'):
         """
         Calculate the difference between the Layer and another.
-        
+
         Parameters:
-        
+
             - op_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the operation layer (str).
-                
+
             - out_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the output layer (str).
-                
+
             - op_layer (optional):
                 Name of the op_ds layer to open. Not required for single-layer
                 data sources (e.g. Shapefile) (str).
@@ -1992,43 +1993,43 @@ class FeatureLayer(Dataset):
             - out_layer (optional):
                 Name of the in_ds layer to create. Not required for
                 single-layer data sources (e.g. Shapefile) (str).
-                
+
             - out_driver (optional):
                 Specify the OGR driver to use for the output, in OGR string
                 format, or an OGR Driver instance. This is not necessarily
                 required where out_ds has a standard file extension .e.g '.shp'
                 (str/ogr.Driver).
-                
+
             - spatial_ref (optional):
                 Spatial reference to use for projecting the Features. Input
                 must be valid for sr_format. Default uses the reference of
                 ogr_layer (str/obj).
-                    
+
             - sr_format (optional):
                 Format of spatial_ref. Valid formats are osr (default), wkt,
                 proj4, url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-        
+
         """
-        
+
         operation = ogr.Layer.SymDifference
         self._spatial_op(operation, out_ds, op_ds, out_layer, op_layer,
                          out_driver, spatial_ref, sr_format)
-        
+
     def erase(self, op_ds, out_ds, op_layer=None, out_layer=None,
               out_driver=None, spatial_ref=None, sr_format='osr'):
         """
         Execute an erase operation between the Layer and another.
-        
+
         Parameters:
-        
+
             - op_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the operation layer (str).
-                
+
             - out_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the output layer (str).
-                
+
             - op_layer (optional):
                 Name of the op_ds layer to open. Not required for single-layer
                 data sources (e.g. Shapefile) (str).
@@ -2036,24 +2037,24 @@ class FeatureLayer(Dataset):
             - out_layer (optional):
                 Name of the in_ds layer to create. Not required for
                 single-layer data sources (e.g. Shapefile) (str).
-                
+
             - out_driver (optional):
                 Specify the OGR driver to use for the output, in OGR string
                 format, or an OGR Driver instance. This is not necessarily
                 required where out_ds has a standard file extension .e.g '.shp'
                 (str/ogr.Driver).
-                
+
             - spatial_ref (optional):
                 Spatial reference to use for projecting the Features. Input
                 must be valid for sr_format. Default uses the reference of
                 ogr_layer (str/obj).
-                    
+
             - sr_format (optional):
                 Format of spatial_ref. Valid formats are osr (default), wkt,
                 proj4, url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-        
+
         """
-        
+
         operation = ogr.Layer.Erase
         self._spatial_op(operation, out_ds, op_ds, out_layer, op_layer,
                          out_driver, spatial_ref, sr_format)
@@ -2061,20 +2062,20 @@ class FeatureLayer(Dataset):
     def export(self, out_ds, out_layer=None, driver=None):
         """
         Export the layer to an output file.
-        
+
         Parameters:
-                
+
             - out_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string (str).
-                
+
             - out_layer (optional):
                 Name, or index for the layer to create, if not included in the
                 out_file argument (str/int).
-                
+
             - driver (optional):
                 Name of the driver used to open the datasource (str).
-        
+
         """
 
         out_ds, layer = create_layer(out_ds, self.field_definitions,
@@ -2088,17 +2089,17 @@ class FeatureLayer(Dataset):
                  out_driver=None, spatial_ref=None, sr_format='osr'):
         """
         Execute an identity operation between the Layer and another.
-        
+
         Parameters:
-        
+
             - op_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the operation layer (str).
-                
+
             - out_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the output layer (str).
-                
+
             - op_layer (optional):
                 Name of the op_ds layer to open. Not required for single-layer
                 data sources (e.g. Shapefile) (str).
@@ -2106,24 +2107,24 @@ class FeatureLayer(Dataset):
             - out_layer (optional):
                 Name of the in_ds layer to create. Not required for
                 single-layer data sources (e.g. Shapefile) (str).
-                
+
             - out_driver (optional):
                 Specify the OGR driver to use for the output, in OGR string
                 format, or an OGR Driver instance. This is not necessarily
                 required where out_ds has a standard file extension .e.g '.shp'
                 (str/ogr.Driver).
-                
+
             - spatial_ref (optional):
                 Spatial reference to use for projecting the Features. Input
                 must be valid for sr_format. Default uses the reference of
                 ogr_layer (str/obj).
-                    
+
             - sr_format (optional):
                 Format of spatial_ref. Valid formats are osr (default), wkt,
                 proj4, url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-        
+
         """
-        
+
         operation = ogr.Layer.Identity
         self._spatial_op(operation, out_ds, op_ds, out_layer, op_layer,
                          out_driver, spatial_ref, sr_format)
@@ -2132,17 +2133,17 @@ class FeatureLayer(Dataset):
                      out_driver=None, spatial_ref=None, sr_format='osr'):
         """
         Execute an intersection operation between the Layer and another.
-        
+
         Parameters:
-        
+
             - op_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the operation layer (str).
-                
+
             - out_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the output layer (str).
-                
+
             - op_layer (optional):
                 Name of the op_ds layer to open. Not required for single-layer
                 data sources (e.g. Shapefile) (str).
@@ -2150,24 +2151,24 @@ class FeatureLayer(Dataset):
             - out_layer (optional):
                 Name of the in_ds layer to create. Not required for
                 single-layer data sources (e.g. Shapefile) (str).
-                
+
             - out_driver (optional):
                 Specify the OGR driver to use for the output, in OGR string
                 format, or an OGR Driver instance. This is not necessarily
                 required where out_ds has a standard file extension .e.g '.shp'
                 (str/ogr.Driver).
-                
+
             - spatial_ref (optional):
                 Spatial reference to use for projecting the Features. Input
                 must be valid for sr_format. Default uses the reference of
                 ogr_layer (str/obj).
-                    
+
             - sr_format (optional):
                 Format of spatial_ref. Valid formats are osr (default), wkt,
                 proj4, url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-        
+
         """
-        
+
         operation = ogr.Layer.Intersection
         self._spatial_op(operation, out_ds, op_ds, out_layer, op_layer,
                          out_driver, spatial_ref, sr_format)
@@ -2176,18 +2177,18 @@ class FeatureLayer(Dataset):
                 out_layer=None, out_driver=None):
         """
         Projects the Layer to another spatial reference.
-        
+
         Parameters:
-        
+
             - spatial_ref:
                 Spatial reference to use for projecting the Features. Input
                 must be valid for sr_format. Default uses the reference of
                 ogr_layer (str/obj).
-                
+
             - out_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the output layer (str).
-                
+
             - sr_format (optional):
                 Format of spatial_ref. Valid formats are osr (default), wkt,
                 proj4, url, esri, epsg, epsga, pci, usgs, xml, erm (str).
@@ -2195,15 +2196,15 @@ class FeatureLayer(Dataset):
             - out_layer (optional):
                 Name of the in_ds layer to create. Not required for
                 single-layer data sources (e.g. Shapefile) (str).
-                
+
             - out_driver (optional):
                 Specify the OGR driver to use for the output, in OGR string
                 format, or an OGR Driver instance. This is not necessarily
                 required where out_ds has a standard file extension .e.g '.shp'
                 (str/ogr.Driver).
-                
+
         """
-        
+
         if not isinstance(spatial_ref, osr.SpatialReference):
             new_sr = osr.SpatialReference()
             import_sr[sr_format](new_sr, spatial_ref)
@@ -2218,27 +2219,27 @@ class FeatureLayer(Dataset):
     def spatial_filter(self, feature, clause="INTERSECTS", selection="NEW"):
         """
         Select Layer features by spatial relationship with another feature.
-        
+
         Parameters:
-            
+
             - feature:
                 The feature to use for the query (obj).
-            
+
             - clause:
                 Query string to apply to the Features. Input must be valid
                 Python, using unquoted field names and field values as they
                 would be defined in Python, e.g. field_1 >= 1 or field_2 == "A"
                 (str).
-                
+
             - selection (optional):
                 The selection method to apply. Options are "NEW" (default),
                 "INTERSECTION", "UNION", "DIFFERENCE" (str).
-        
+
         """
-        
+
         geom = format_geom(feature)
         selection = spatial_queries[clause.upper()]
-        
+
         # If using a new selection, clear and add all fids passing the test.
         if self._selection is None or selection == "NEW":
             self._selection = set()
@@ -2280,18 +2281,18 @@ class FeatureLayer(Dataset):
                   out_driver=None):
         """
         Transform the Features to another coordinate system.
-        
+
         Parameters:
-        
+
             - spatial_ref:
                 Spatial reference to use for projecting the Features. Input
                 must be valid for sr_format. Default uses the reference of
                 ogr_layer (str/obj).
-                
+
             - out_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the output layer (str).
-                
+
             - sr_format (optional):
                 Format of spatial_ref. Valid formats are osr (default), wkt,
                 proj4, url, esri, epsg, epsga, pci, usgs, xml, erm (str).
@@ -2299,15 +2300,15 @@ class FeatureLayer(Dataset):
             - out_layer (optional):
                 Name of the in_ds layer to create. Not required for
                 single-layer data sources (e.g. Shapefile) (str).
-                
+
             - out_driver (optional):
                 Specify the OGR driver to use for the output, in OGR string
                 format, or an OGR Driver instance. This is not necessarily
                 required where out_ds has a standard file extension .e.g '.shp'
                 (str/ogr.Driver).
-                
+
         """
-        
+
         if not isinstance(spatial_ref, osr.SpatialReference):
             new_sr = osr.SpatialReference()
             import_sr[sr_format](new_sr, spatial_ref)
@@ -2326,17 +2327,17 @@ class FeatureLayer(Dataset):
               out_driver=None, spatial_ref=None, sr_format='osr'):
         """
         Execute a union operation between the Layer and another.
-        
+
         Parameters:
-        
+
             - op_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the operation layer (str).
-                
+
             - out_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the output layer (str).
-                
+
             - op_layer (optional):
                 Name of the op_ds layer to open. Not required for single-layer
                 data sources (e.g. Shapefile) (str).
@@ -2344,24 +2345,24 @@ class FeatureLayer(Dataset):
             - out_layer (optional):
                 Name of the in_ds layer to create. Not required for
                 single-layer data sources (e.g. Shapefile) (str).
-                
+
             - out_driver (optional):
                 Specify the OGR driver to use for the output, in OGR string
                 format, or an OGR Driver instance. This is not necessarily
                 required where out_ds has a standard file extension .e.g '.shp'
                 (str/ogr.Driver).
-                
+
             - spatial_ref (optional):
                 Spatial reference to use for projecting the Features. Input
                 must be valid for sr_format. Default uses the reference of
                 ogr_layer (str/obj).
-                    
+
             - sr_format (optional):
                 Format of spatial_ref. Valid formats are osr (default), wkt,
                 proj4, url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-        
+
         """
-        
+
         operation = ogr.Layer.Union
         self._spatial_op(operation, out_ds, op_ds, out_layer, op_layer,
                          out_driver, spatial_ref, sr_format)
@@ -2370,17 +2371,17 @@ class FeatureLayer(Dataset):
                out_driver=None, spatial_ref=None, sr_format='osr'):
         """
         Execute an update operation between the Layer and another.
-        
+
         Parameters:
-        
+
             - op_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the operation layer (str).
-                
+
             - out_ds:
                 File system path to an OGR-readable data source, or a database
                 connection string, for the output layer (str).
-                
+
             - op_layer (optional):
                 Name of the op_ds layer to open. Not required for single-layer
                 data sources (e.g. Shapefile) (str).
@@ -2388,24 +2389,24 @@ class FeatureLayer(Dataset):
             - out_layer (optional):
                 Name of the in_ds layer to create. Not required for
                 single-layer data sources (e.g. Shapefile) (str).
-                
+
             - out_driver (optional):
                 Specify the OGR driver to use for the output, in OGR string
                 format, or an OGR Driver instance. This is not necessarily
                 required where out_ds has a standard file extension .e.g '.shp'
                 (str/ogr.Driver).
-                
+
             - spatial_ref (optional):
                 Spatial reference to use for projecting the Features. Input
                 must be valid for sr_format. Default uses the reference of
                 ogr_layer (str/obj).
-                    
+
             - sr_format (optional):
                 Format of spatial_ref. Valid formats are osr (default), wkt,
                 proj4, url, esri, epsg, epsga, pci, usgs, xml, erm (str).
-        
+
         """
-        
+
         operation = ogr.Layer.Update
         self._spatial_op(operation, out_ds, op_ds, out_layer, op_layer,
                          out_driver, spatial_ref, sr_format)

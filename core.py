@@ -27,11 +27,11 @@ export_geometries = {'wkt': ogr.Geometry.ExportToWkt,
 
 # OSR SpatialReference methods for exporting to other formats.
 export_sr = {'pwkt': osr.SpatialReference.ExportToPrettyWkt,
-              'wkt': osr.SpatialReference.ExportToWkt,
-              'proj4': osr.SpatialReference.ExportToProj4,
-              'pci': osr.SpatialReference.ExportToPCI,
-              'xml': osr.SpatialReference.ExportToXML,
-              'epsg': osr.SpatialReference.GetAttrValue}
+             'wkt': osr.SpatialReference.ExportToWkt,
+             'proj4': osr.SpatialReference.ExportToProj4,
+             'pci': osr.SpatialReference.ExportToPCI,
+             'xml': osr.SpatialReference.ExportToXML,
+             'epsg': osr.SpatialReference.GetAttrValue}
 
 # Matches extensions to drivers.
 extensions = {}
@@ -97,20 +97,20 @@ spatial_queries = {'CONTAINS': ogr.Geometry.Contains,
 def add_attribute(iterable, value=None):
     """
     Add an attribute to Features in a generator.
-    
+
     Parameters:
-    
+
         - iterable:
             The features to iterate over (list/tuple/generator).
-        
+
         - value (optional):
             Default value for attribute.
-        
+
     Yields:
-    
+
         - feature:
             The result of the tested record (Feature).
-    
+
     """
 
     for feature in iterable:
@@ -121,17 +121,17 @@ def add_attribute(iterable, value=None):
 def cascaded_union(geoms):
     """
     Union multiple OGR Geometries into a single Geometry.
-    
+
     Parameters:
-    
+
         - geoms:
             The OGR Geometries to iterate over (list/tuple/generator).
-            
+
     Returns:
-    
+
         - geom:
             The resulting geometry (ogr.Geometry).
-    
+
     """
 
     geometry = ogr.Geometry(ogr.wkbMultiPolygon)
@@ -146,51 +146,51 @@ def create_layer(datasource, field_definitions, geometry_type, fields=None,
                  features=None, spatial_ref=None, layer=None, driver=None):
     """
     Create a data source and layer file, and populate with Features.
-    
+
     Parameters:
-    
+
         - datasource:
             Path to the output data source, potentially including the layer
             name (str).
-            
+
         - field_definitions:
             Feature definitions object or Layer field_definitions dict
             (ogr.FeatureDefn/dict).
-            
+
         - geometry_type:
             OGR geometry type for the output (int).
-    
+
         - fields (optional):
             Field names for the output (list/tuple).
-    
+
         - features (optional):
             The features to iterate over (list/tuple/generator).
-            
+
         - spatial_ref (optional):
             OSR SpatialReference to set for the output (osr.SpatialReference).
-        
+
         - layer (optional):
             Name for the output layer, if not given in datasource (str).
-            
+
         - driver (optional):
             OGR name for the driver to use for the output (str).
-            
+
     Returns:
-    
+
         - ds:
             The opened data source (ogr.DataSource).
-            
+
         - out_layer:
             The created layer (ogr.Layer).
-    
+
     """
-    
+
     _, ds = open_ds(datasource, driver, True, "rw")
     layers = ds.GetLayerCount()
     if layer is None:
         layer = get_layer(datasource)
     if layer.upper() in (ds.GetLayerByIndex(i).GetName().upper()
-                              for i in xrange(layers)):
+                         for i in xrange(layers)):
         ds.DeleteLayer(layer)
     out_layer = ds.CreateLayer(layer, spatial_ref, geometry_type)
     if isinstance(field_definitions, ogr.FeatureDefn):
@@ -219,29 +219,29 @@ def create_ogr_feature(definition, ogr_geom, attributes=[], fields=None):
     """
     Create an OGR Feature object from a OGR Geometry, OGR FeatureDefn, and a
     set of attributes.
-    
+
     Parameters:
-    
+
         - field_definitions:
             Feature definitions object or Layer field_definitions dict
             (ogr.FeatureDefn/dict).
-            
+
         - ogr_geom:
             OGR geometry for the output (ogr.Geometry).
-    
+
         - attributes (optional):
             The attributes to include in the output feature (list/tuple).
-    
+
         - fields (optional):
             Field names for the output (list/tuple).
-            
+
     Returns:
-    
+
         - feature:
             The created Feature object (ogr.Feature).
-    
+
     """
-    
+
     feature = ogr.Feature(definition)
     if fields is None:
         fields = [definition.GetFieldDefn(i).GetName() for
@@ -252,25 +252,57 @@ def create_ogr_feature(definition, ogr_geom, attributes=[], fields=None):
     return feature
 
 
+def extent_to_polygon(minx, miny, maxx, maxy):
+    """
+    Create an OGR Geometry from a bounding box extent.
+
+    Parameters:
+
+        - minx:
+            Minimum x value for extent (int/float).
+
+        - miny:
+            Minimum y value for extent (int/float).
+
+        - maxx:
+            Maximum x value for extent (int/float).
+
+        - maxy:
+            Maxmum y value for extent (int/float).
+
+    Returns:
+
+        - ogr_geom:
+            The resultant OGR Geometry (ogr.Geometry)
+
+    """
+
+    extent = "POLYGON (("
+    extent += "{0} {1}, {2} {1}, {2} {3}, {0} {3}, {0} {1}".format(
+               minx, miny, maxx, maxy)
+    extent += "))"
+    return import_geometries['wkt'](extent)
+
+
 def get_layer(datasource):
     """
     Gets the layer name of single-layer data sources. If not possible (e.g.
     database connection strings), raises an exception.
-    
+
     Parameters:
-    
+
         - datasource:
             File path for the datasource, or an OGR DataSource instance
             (ogr.DataSource/str).
-            
+
     Returns:
-    
+
         - layer_name:
             The name of the layer, determined as the basename of the input
             data source, excluding any file extension (str).
-    
+
     """
-    
+
     try:
         if isinstance(datasource, ogr.DataSource):
             datasource = datasource.GetName()
@@ -284,22 +316,22 @@ def get_layer(datasource):
 def map_geom(func, iterable, *args, **kwargs):
     """
     Apply spatial operations to Features in an iterable.
-    
+
     Parameters:
-    
+
         - func:
             The function to use (func).
-    
+
         - iterable:
             The features to iterate over (list/tuple/generator).
-        
+
     Yields:
-    
+
         - feature:
             The result of the spatial operation (Feature).
-    
+
     """
-    
+
     for i in iterable:
         feature = func(i, *args, **kwargs)
         if feature is not None:
@@ -315,28 +347,28 @@ def open_ds(datasource, driver=None, create=False, mode="r"):
         - datasource:
             File system path to an OGR-readable data source, or a database
             connection string (str).
-   
+
         - driver (optional):
             Name of the driver to use, in OGR format (str). If not
             supplied, this will be determined from the file extension, or
             by attempting all drivers (str).
-   
+
         - create (optional):
             If True, create a new data source, otherwise if not found, raise an
             exception (default) (bool).
-   
+
         - mode (optional):
             Set "r" for read only, or "rw" for read/write. OGR 0/1 is also
             accepted. Read only is default (int/str).
 
     Returns:
-    
+
         - driver:
             The driver used to open the DataSource (ogr.Driver).
-            
+
         - ds:
             The opened OGR DataSource (ogr.DataSource).
-            
+
     """
 
     modes = {"r": 0, "rw": 1}
@@ -356,7 +388,7 @@ def open_ds(datasource, driver=None, create=False, mode="r"):
         try:
             driver = ogr.GetDriverByName(driver)
         except:
-            print ("\nSupplied driver parameter value not valid, or driver " + 
+            print ("\nSupplied driver parameter value not valid, or driver " +
                    "not available.")
             raise Exception()
     if os.path.exists(datasource):
@@ -388,25 +420,25 @@ def open_ds(datasource, driver=None, create=False, mode="r"):
 def spatial_query(query, iterable, feature):
     """
     Filter Features in an iterable by spatial predicate.
-    
+
     Parameters:
-    
+
         - query:
             The spatial predicate function to use (func).
-    
+
         - iterable:
             The features to iterate over (list/tuple/generator).
-        
+
         - feature:
             The operation feature to apply (Feature)
-        
+
     Yields:
-    
+
         - feature:
             The result of the spatial operation (Feature).
-    
+
     """
-    
+
     for i in iterable:
         result = query(i, feature)
         if result:
@@ -416,15 +448,15 @@ def spatial_query(query, iterable, feature):
 def update_attributes(iterable, field, value, fields, clause=None):
     """
     Alter the value of an Feature attribute in an iterable.
-    
+
     Parameters:
-    
+
         - iterable:
             The features to iterate over (list/tuple/generator).
-        
+
         - field:
             The field to adjust (str).
-    
+
         - fields:
             The fields present in the clause (list/tuple).
 
@@ -432,12 +464,12 @@ def update_attributes(iterable, field, value, fields, clause=None):
             The input query string (str).
 
     Yields:
-    
+
         - feature:
             The result of the spatial operation (Feature).
-    
+
     """
-    
+
     idx = fields.index(field)
     if clause:
         query = Query(fields, clause)
@@ -454,22 +486,22 @@ def update_attributes(iterable, field, value, fields, clause=None):
 def update_feature(func, iterable, *args):
     """
     Apply spatial operations to Features in an iterable.
-    
+
     Parameters:
-    
+
         - func:
             The function to use (func).
-    
+
         - iterable:
             The features to iterate over (list/tuple/generator).
-        
+
     Yields:
-    
+
         - feature:
             The result of the spatial operation (Feature).
-    
+
     """
-    
+
     for feature in iterable:
         func(feature, *args)
         yield feature
@@ -481,19 +513,19 @@ class Query(object):
     parsing, just replaces fields with test values and calls eval.
 
     Methods:
-    
+
         - test:
             Tests the attributes of a records against the acceptable input
             clause.
-            
+
     Attributes:
-    
+
         - clause:
             The input query string (str).
-    
+
         - fields:
             The fields present in the clause (list/tuple).
-    
+
     """
 
     def __init__(self, fields, clause):
